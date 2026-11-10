@@ -26,7 +26,7 @@ public class DatabaseTestRunner implements CommandLineRunner {
         userRepository.save(user);
         System.out.println("Успешно записен потребител в базата: " + user.getUsername());
 
-        PaymentTransaction transaction = new PaymentTransaction(new BigDecimal(160.60), "Electriicity Bill");
+        PaymentTransaction transaction = new PaymentTransaction(user.getId(), 2L, new BigDecimal("160.80"));
         transactionRepository.save(transaction);
         System.out.println("Успешно записана транзакция на стойност: " + transaction.getAmount() + "лв.");
         System.out.println("--- Database work perfect! ---");

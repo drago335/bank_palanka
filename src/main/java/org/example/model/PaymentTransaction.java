@@ -16,6 +16,12 @@ public class PaymentTransaction {
     private Long id;
 
     @Column(nullable = false)
+    private Long senderId;
+
+    @Column(nullable = false)
+    private Long recipientId;
+
+    @Column(nullable = false)
     private BigDecimal amount;
 
     @Column(nullable = false)
@@ -30,13 +36,12 @@ public class PaymentTransaction {
     private String errorMessage;
 
     public PaymentTransaction(){
-
     }
 
-    public PaymentTransaction(BigDecimal amount, String recipient) {
-
+    public PaymentTransaction(Long senderId, Long recipientId, BigDecimal amount ) {
+        this.senderId = senderId;
+        this.recipientId = recipientId;
         this.amount = amount;
-        this.recipient = recipient;
         this.timestamp = LocalDateTime.now();
     }
 
@@ -46,6 +51,22 @@ public class PaymentTransaction {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getSenderId() {
+        return senderId;
+    }
+
+    public void setSenderId(Long senderId) {
+        this.senderId = senderId;
+    }
+
+    public Long getRecipientId() {
+        return recipientId;
+    }
+
+    public void setRecipientId(Long recipientId) {
+        this.recipientId = recipientId;
     }
 
     public BigDecimal getAmount() {
