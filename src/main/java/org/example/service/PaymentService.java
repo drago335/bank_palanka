@@ -3,6 +3,7 @@ package org.example.service;
 import org.example.exception.InsufficientFundsException;
 import org.example.exception.UserNotFoundException;
 import org.example.model.PaymentTransaction;
+import org.example.model.TransactionStatus;
 import org.example.model.User;
 import org.example.repository.PaymentTransactionRepository;
 import org.example.repository.UserRepository;
@@ -28,29 +29,37 @@ public class PaymentService {
         if(amount == null || amount.compareTo(BigDecimal.ZERO) <= 0){
             throw new IllegalArgumentException("Сумата за превод трябва да бъде по-голяма от нула!");
         }
+        User sender = null;
+        User recipient = null;
+        try {
+            sender = userRepository.findById(senderId)
+                    .orElseThrow(() -> new UserNotFoundException("Подател с ID: " + senderId + "не беше намерен."));
+            recipient = userRepository.findById(recipientId)
+                    .orElseThrow(() -> new UserNotFoundException("Получателят с ID: " + recipientId + "не беше намерен."));
 
-        User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new UserNotFoundException("Подателят не е намерен с ID: " + senderId));
+            if (sender.getBalance().compareTo(amount) < 0){
+                throw new InsufficientFundsException("Недостатъчна наличност. Текущ баланс: " + sender.getBalance() + ", искана сума: " + amount);
+            }
 
-        User recipient = userRepository.findById(recipientId)
-                .orElseThrow(() -> new UserNotFoundException("Получтелят не е намерен с ID: " + recipientId));
+            sender.setBalance(sender.getBalance().subtract(amount));
+            recipient.setBalance(recipient.getBalance().add(amount));
 
-        if(sender.getBalance().compareTo(amount) < 0){
-            throw new InsufficientFundsException("Недостатъчна наличност по сметката на подателя!");
+            userRepository.save(sender);
+            userRepository.save(recipient);
+
+            PaymentTransaction transaction = new PaymentTransaction(amount,recipient.getUsername());
+            transaction.setStatus(TransactionStatus.SUCCESS);
+            transactionRepository.save(transaction);
+        }catch (RuntimeException e){
+            PaymentTransaction failedTransaction = new PaymentTransaction(amount, recipient != null ? recipient.getUsername() : "UNKNOWN");
+            failedTransaction.setStatus(TransactionStatus.FAILED);
+            failedTransaction.setErrorMessage(e.getMessage());
+            transactionRepository.save(failedTransaction);
+
+            throw e;
         }
 
-        sender.setBalance(sender.getBalance().subtract(amount));
-        recipient.setBalance(recipient.getBalance().add(amount));
 
-        userRepository.save(sender);
-        userRepository.save(recipient);
-
-        PaymentTransaction transaction = new PaymentTransaction();
-        transaction.setAmount(amount);
-        transaction.setRecipient(recipient.getUsername());
-        transaction.setTimestamp(LocalDateTime.now());
-
-        transactionRepository.save(transaction);
 
     }
 }
