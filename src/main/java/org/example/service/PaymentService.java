@@ -1,5 +1,7 @@
 package org.example.service;
 
+import org.example.exception.InsufficientFundsException;
+import org.example.exception.UserNotFoundException;
 import org.example.model.PaymentTransaction;
 import org.example.model.User;
 import org.example.repository.PaymentTransactionRepository;
@@ -28,13 +30,13 @@ public class PaymentService {
         }
 
         User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new RuntimeException("Подателят не е намерен с ID: " + senderId));
+                .orElseThrow(() -> new UserNotFoundException("Подателят не е намерен с ID: " + senderId));
 
         User recipient = userRepository.findById(recipientId)
-                .orElseThrow(() -> new RuntimeException("Получтелят не е намерен с ID: " + recipientId));
+                .orElseThrow(() -> new UserNotFoundException("Получтелят не е намерен с ID: " + recipientId));
 
         if(sender.getBalance().compareTo(amount) < 0){
-            throw new RuntimeException("Недостатъчна наличност по сметката на подателя!");
+            throw new InsufficientFundsException("Недостатъчна наличност по сметката на подателя!");
         }
 
         sender.setBalance(sender.getBalance().subtract(amount));
