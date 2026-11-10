@@ -32,7 +32,7 @@ public class PaymentService {
         User sender = null;
         User recipient = null;
         try {
-            sender = userRepository.findById(senderId)
+            sender = userRepository.findByIdWithLock(senderId)
                     .orElseThrow(() -> new UserNotFoundException("Подател с ID: " + senderId + "не беше намерен."));
             recipient = userRepository.findById(recipientId)
                     .orElseThrow(() -> new UserNotFoundException("Получателят с ID: " + recipientId + "не беше намерен."));
