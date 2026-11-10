@@ -2,6 +2,8 @@ package org.example.model;
 
 
 import jakarta.persistence.*;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -21,6 +23,11 @@ public class PaymentTransaction {
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status;
+
+    private String errorMessage;
 
     public PaymentTransaction(){
 
@@ -63,5 +70,21 @@ public class PaymentTransaction {
 
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public TransactionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TransactionStatus status) {
+        this.status = status;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 }
