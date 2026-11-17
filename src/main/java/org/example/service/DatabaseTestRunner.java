@@ -12,24 +12,25 @@ import java.math.BigDecimal;
 @Component
 public class DatabaseTestRunner implements CommandLineRunner {
     private final UserRepository userRepository;
-    private final PaymentTransactionRepository transactionRepository;
 
-    public DatabaseTestRunner(UserRepository userRepository,PaymentTransactionRepository transactionRepository){
+    public DatabaseTestRunner(UserRepository userRepository){
         this.userRepository = userRepository;
-        this.transactionRepository = transactionRepository;
     }
 
     @Override
-    public void run(String... args) throws Exception{
-        System.out.println("--- ТЕСТ НА БАЗАТА ДАННИ ЗАПОЧВА ---");
-        User user = new User("ivan_ivanov", "ivan@example.com");
-        userRepository.save(user);
-        System.out.println("Успешно записен потребител в базата: " + user.getUsername());
+    public void run(String... args) {
+        if(userRepository.count() == 0){
+            User user1 = new User("ivan_ivanov","ivan@example.com");
+            user1.setBalance(new BigDecimal("1000.00"));
 
-        PaymentTransaction transaction = new PaymentTransaction(user.getId(), 2L, new BigDecimal("160.80"));
-        transactionRepository.save(transaction);
-        System.out.println("Успешно записана транзакция на стойност: " + transaction.getAmount() + "лв.");
-        System.out.println("--- Database work perfect! ---");
+            User user2 = new User("maria_petrova","maria@example.com");
+            user2.setBalance(new BigDecimal("500.00"));
+
+            userRepository.save(user1);
+            userRepository.save(user2);
+
+            System.out.println("--- Created test users: ivan_ivanov(1000.00) and maria_petrova(500.00) ---");
+        }
     }
 
 

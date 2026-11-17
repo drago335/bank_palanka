@@ -31,6 +31,7 @@ public class PaymentTransaction {
     private LocalDateTime timestamp;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TransactionStatus status;
 
     private String errorMessage;
@@ -38,13 +39,20 @@ public class PaymentTransaction {
     public PaymentTransaction(){
     }
 
-    public PaymentTransaction(Long senderId, Long recipientId, BigDecimal amount ) {
+    public PaymentTransaction(Long senderId, Long recipientId, BigDecimal amount,TransactionStatus status ) {
         this.senderId = senderId;
         this.recipientId = recipientId;
         this.amount = amount;
+        this.status = status;
         this.timestamp = LocalDateTime.now();
     }
 
+    @PrePersist
+    protected void onCreate(){
+        if(this.timestamp == null){
+            this.timestamp = LocalDateTime.now();
+        }
+    }
     public Long getId() {
         return id;
     }
