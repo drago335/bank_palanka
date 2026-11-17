@@ -18,25 +18,41 @@ public class PaymentService {
 
     private final UserRepository userRepository;
     private final PaymentTransactionRepository transactionRepository;
+    private final TransactionAuditService auditService;
 
-    public PaymentService(UserRepository userRepository,PaymentTransactionRepository transactionRepository){
+    public PaymentService(UserRepository userRepository,PaymentTransactionRepository transactionRepository,TransactionAuditService auditService){
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.auditService = auditService;
     }
 
     @Transactional
     public PaymentTransaction transferMoney(Long senderId, Long recipientId, BigDecimal amount){
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if(senderId == null || recipientId == null){
+            throw new IllegalArgumentException("Идентификаторитена подателя и получателя са задължителни.");
+        }
+        if(senderId.equals(recipientId)){
+            throw new IllegalArgumentException("Не можете да завършите превод към собствения си акаунт.");
+        }
+        if(amount == null || amount.compareTo(BigDecimal.ZERO) <= 0){
             throw new IllegalArgumentException("Сумата за превод трябва да бъде по-голяма от нула!");
         }
 
-        User sender = userRepository.findByIdWithLock(senderId)
-                .orElseThrow(() -> new UserNotFoundException("Подател с ID: " + senderId + " не беше намерен."));
-        User recipient = userRepository.findById(recipientId)
-                .orElseThrow(() -> new UserNotFoundException("Получателят с ID: " + recipientId + " не беше намерен."));
+        Long firstLockId = Math.min(senderId, recipientId);
+        Long secondLockId =Math.max(senderId, recipientId);
 
-        if (sender.getBalance().compareTo(amount) < 0) {
-            throw new InsufficientFundsException("Недостатъчна наличност. Текущ баланс: " + sender.getBalance() + ", искана сума: " + amount);
+        User firstUser = userRepository.findByIdWithLock(firstLockId)
+                .orElseThrow(() -> new UserNotFoundException("Потребител с ID: " + firstLockId + "не беше намерен."));
+        User secondUser = userRepository.findByIdWithLock(secondLockId)
+                .orElseThrow(() -> new UserNotFoundException("Потребител с ID: " + secondLockId + "не беше намерен."));
+
+        User sender = senderId.equals(firstLockId) ? firstUser : secondUser;
+        User recipient = recipientId.equals(firstLockId) ? firstUser : secondUser;
+
+        if(sender. getBalance().compareTo(amount) < 0){
+            String errorMsg = "Недостатъчна наличност. Текущ баланс: " + sender.getBalance() + ", искана сума: " + amount;
+            auditService.logFailedTransaction(senderId, recipientId, amount, errorMsg);
+            throw new InsufficientFundsException(errorMsg);
         }
 
         sender.setBalance(sender.getBalance().subtract(amount));
@@ -45,23 +61,8 @@ public class PaymentService {
         userRepository.save(sender);
         userRepository.save(recipient);
 
-        try {
-            // Създаваме успешна транзакция с новия конструктор
-            PaymentTransaction transaction = new PaymentTransaction(senderId, recipientId, amount);
-            transaction.setStatus(TransactionStatus.SUCCESS);
+        PaymentTransaction transaction = new PaymentTransaction(senderId,recipientId,amount,TransactionStatus.SUCCESS);
 
-            // Записваме я и я ВРЪЩАМЕ към контролера
-            return transactionRepository.save(transaction);
-
-        } catch (RuntimeException e) {
-            PaymentTransaction failedTransaction = new PaymentTransaction(senderId, recipientId, amount);
-            failedTransaction.setStatus(TransactionStatus.FAILED);
-            failedTransaction.setErrorMessage(e.getMessage());
-            transactionRepository.save(failedTransaction);
-            throw e;
-        }
-
-
-
+        return transactionRepository.save(transaction);
     }
 }
